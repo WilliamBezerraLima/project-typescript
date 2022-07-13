@@ -69,112 +69,83 @@ function validateLoginButton() {
     }
 }
 
-class HttpClient {       
-    static async get({ url = "", method = "", body = null }) {
-        return new Promise((resolve, reject) => {
-            let request = new XMLHttpRequest();
-            request.open(method, url, true);
+async function request (uri: string, method: "POST" | "GET", body?: any) {
+    const response = await fetch(`https://api.themoviedb.org${uri}`, {
+        method: method,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: body && JSON.stringify(body)
+      });
+      return await response.json();
+}
 
-            request.onload = () => {
-                if (request.status >= 200 && request.status < 300) {
-                    resolve(JSON.parse(request.responseText));
-                } else {
-                    reject({
-                        status: request.status,
-                        statusText: request.statusText
-                    })
-                }
-            }
-            request.onerror = () => {
-                reject({
-                    status: request.status,
-                    statusText: request.statusText
-                })
-            }
+async function get (uri: string) {
+    return await request(uri, "GET")
+}
 
-            if (body) {
-                request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-                body = JSON.stringify(body);
-            }
-            request.send(body);
-        })
-    }
+async function post (uri: string, body?: any) {
+    return await request(uri, "POST", body)
 }
 
 async function procurarFilme(query:string) {
     query = encodeURI(query)
     console.log(query)
-    return await HttpClient.get({
-        url: `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${query}`,
-        method: "GET"
-    })
+
+    return await get(`/3/search/movie?api_key=${apiKey}&query=${query}`)
 }
 
 async function adicionarFilme(filmeId:number) {
-    let result = await HttpClient.get({
-        url: `https://api.themoviedb.org/3/movie/${filmeId}?api_key=${apiKey}&language=en-US`,
-        method: "GET"
-    })
+    let result = await get(`/3/movie/${filmeId}?api_key=${apiKey}&language=en-US`)
     console.log(result);
 }
 
 async function criarRequestToken() {
-    let result = await HttpClient.get({
-        url: `https://api.themoviedb.org/3/authentication/token/new?api_key=${apiKey}`,
-        method: "GET"
-    })
+    let result = await get(`/3/authentication/token/new?api_key=${apiKey}`)
     requestToken = String(result.request_token)
 }
 
 async function logar() {
-    await HttpClient.get({
-        url: `https://api.themoviedb.org/3/authentication/token/validate_with_login?api_key=${apiKey}`,
-        method: "POST",
-        body: {
+    await post(
+        `/3/authentication/token/validate_with_login?api_key=${apiKey}`,
+        {
             username: `${username}`,
             password: `${password}`,
             request_token: `${requestToken}`
         }
-    })
+    )
 }
 
 async function criarSessao() {
-    let result = await HttpClient.get({
-        url: `https://api.themoviedb.org/3/authentication/session/new?api_key=${apiKey}&request_token=${requestToken}`,
-        method: "GET"
-    })
+    let result = await get(`/3/authentication/session/new?api_key=${apiKey}&request_token=${requestToken}`)
     sessionId = result.session_id;
 }
 
 async function criarLista(nomeDaLista:string, descricao:string) {
-    let result = await HttpClient.get({
-        url: `https://api.themoviedb.org/3/list?api_key=${apiKey}&session_id=${sessionId}`,
-        method: "POST",
-        body: {
+    let result = await post(
+        `/3/list?api_key=${apiKey}&session_id=${sessionId}`,
+        {
             name: nomeDaLista,
             description: descricao,
             language: "pt-br"
         }
-    })
+    )
     console.log(result);
 }
 
 async function adicionarFilmeNaLista(filmeId:number, listaId:number) {
-    let result = await HttpClient.get({
-        url: `https://api.themoviedb.org/3/list/${listaId}/add_item?api_key=${apiKey}&session_id=${sessionId}`,
-        method: "POST",
-        body: {
+    let result = await post(
+        `/3/list/${listaId}/add_item?api_key=${apiKey}&session_id=${sessionId}`,
+        {
             media_id: filmeId
         }
-    })
+    )
     console.log(result);
 }
 
 async function pegarLista() {
-    let result = await HttpClient.get({
-        url: `https://api.themoviedb.org/3/list/${listId}?api_key=${apiKey}`,
-        method: "GET"
-    })
+    let result = await get(`/3/list/${listId}?api_key=${apiKey}`)
     console.log(result);
 }
 
